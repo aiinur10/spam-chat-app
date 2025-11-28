@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Spam SMS Detector</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+<div class="main-chat">
+    <div class="header"><span id="my-name">User</span></div>
+    <div class="chat-container" id="chat-box"></div>
+    <div class="footer">
+        <input type="text" id="message-input" placeholder="Ketik pesan...">
+        <button id="send-btn"><i class="fa fa-paper-plane"></i></button>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+const socket = io();
+let username = "";
+
+socket.on("set_username", name => {
+    username = name;
+    document.getElementById("my-name").textContent = name;
+});
+
+function addMessage(data) {
+    const box = document.getElementById("chat-box");
+    const wrapper = document.createElement("div");
+    wrapper.className = "bubble-wrapper " + (data.user === username ? "right" : "left");
+
+    const bubble = document.createElement("div");
+
+    // Warna bubble berdasarkan spam / user / other
+    if (data.isSpam) {
+        bubble.className = "bubble spam";
+    } else if (data.user === username) {
+        bubble.className = "bubble user";
+    } else {
+        bubble.className = "bubble other";
+    }
+
+    bubble.innerHTML = `<b>${data.user}</b><br>${data.text}<div class='time'>${data.time}</div>`;
+
+    wrapper.appendChild(bubble);
+    box.appendChild(wrapper);
+    box.scrollTop = box.scrollHeight;
+}
+
+function sendMessage() {
+    const input = document.getElementById("message-input");
+    const msg = input.value.trim();
+    if (!msg) return;
+    socket.emit("message", msg);
+    input.value = "";
+}
+
+document.getElementById("send-btn").addEventListener("click", sendMessage);
+document.getElementById("message-input").addEventListener("keypress", e => {
+    if (e.key === "Enter") sendMessage();
+});
+
+socket.on("chat_message", data => addMessage(data));
+</script>
+</body>
+</html>
